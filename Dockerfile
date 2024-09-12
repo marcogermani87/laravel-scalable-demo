@@ -13,6 +13,8 @@ RUN install-php-extensions bcmath curl fileinfo intl json mbstring mcrypt mysqli
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
 COPY . /var/www/html
 
 WORKDIR /var/www/html/public

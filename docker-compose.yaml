@@ -1,0 +1,63 @@
+services:
+  app:
+    build: .
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      - caddy
+      - db
+      - redis
+    networks:
+      - app-network
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  caddy:
+    image: caddy
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./src:/var/www/html
+    restart: always
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1024M
+
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    command: bash -c "redis-server --appendonly yes --requirepass 123Stella@"
+    expose:
+      - 6379
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - app-network
+
+  db:
+    image: mysql:8.0.11
+    restart: unless-stopped
+    tty: true
+    expose:
+      - 3306
+    volumes:
+      - ./data/db:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "123Stella@"
+      MYSQL_DATABASE: "laravel"
+      MYSQL_USER: "laravel"
+      MYSQL_PASSWORD: "123Stella@"
+    networks:
+      - app-network
+
+networks:
+  app-network:

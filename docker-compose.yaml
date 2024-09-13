@@ -8,43 +8,43 @@ services:
       - db
       - redis
     networks:
-      - app-network
+      - backend
     deploy:
       replicas: 4
       resources:
         limits:
-          cpus: '1'
-          memory: 512M
+          cpus: "${APP_CPUS:?}"
+          memory: "${APP_MEMORY:?}"
 
   caddy:
     image: caddy
     ports:
-      - "80:80"
+      - "${CADDY_PORT:?}:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - ./src:/var/www/html
     restart: always
     networks:
-      - app-network
+      - backend
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 1024M
+          cpus: "${CADDY_CPUS:?}"
+          memory: "${CADDY_MEMORY:?}"
 
   redis:
     image: redis:latest
     restart: unless-stopped
-    command: bash -c "redis-server --appendonly yes --requirepass 123Stella@"
+    command: bash -c "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?}"
     expose:
       - 6379
     volumes:
       - ./data/redis:/data
     networks:
-      - app-network
+      - backend
 
   db:
-    image: mysql:8.0.11
+    image: mysql
     restart: unless-stopped
     tty: true
     expose:
@@ -52,12 +52,14 @@ services:
     volumes:
       - ./data/db:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: "123Stella@"
-      MYSQL_DATABASE: "laravel"
-      MYSQL_USER: "laravel"
-      MYSQL_PASSWORD: "123Stella@"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:?}"
+      MYSQL_USER: "${MYSQL_USER:?}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:?}"
     networks:
-      - app-network
+      - backend
 
 networks:
-  app-network:
+  backend:
+    driver: bridge
+    name: ${NETWORK_NAME:?}

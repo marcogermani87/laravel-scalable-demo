@@ -6,7 +6,7 @@ COPY src/package*.json src/*.mix.js /app/
 
 RUN npm install
 
-FROM php:8.2-fpm
+FROM dunglas/frankenphp:latest
 
 RUN apt-get update && apt-get install -y build-essential libpq-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
     locales zip jpegoptim optipng pngquant gifsicle vim unzip curl libzip-dev libcurl4-gnutls-dev libicu-dev libmcrypt-dev \
@@ -31,11 +31,10 @@ COPY . /var/www/html
 
 COPY --from=node_stage /app/node_modules /tmp/node_modules
 
-WORKDIR /var/www/html/public
+WORKDIR /var/www/html
 
 ADD init.sh /init.sh
 
 RUN chmod +x /init.sh
 
 CMD ["/init.sh"]
-

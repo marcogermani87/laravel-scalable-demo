@@ -1,54 +1,52 @@
+version: '3.8'
+
 services:
   app:
-    build: .
-    volumes:
-      - ./src:/var/www/html
+    image: laravel-scalable-app:latest
     depends_on:
-      - caddy
       - db
       - redis
-    networks:
-      - backend
-    deploy:
-      replicas: 4
-      resources:
-        limits:
-          cpus: "${APP_CPUS:?}"
-          memory: "${APP_MEMORY:?}"
-
-  caddy:
-    image: caddy
-    ports:
-      - "${CADDY_PORT:?}:80"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
       - ./src:/var/www/html
-    restart: always
+    ports:
+      - target: 80
+        published: "${WEB_PORT:?}"
+        protocol: tcp
+        mode: ingress
     networks:
       - backend
     deploy:
-      resources:
-        limits:
-          cpus: "${CADDY_CPUS:?}"
-          memory: "${CADDY_MEMORY:?}"
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 10s
 
   redis:
-    image: redis:latest
-    restart: unless-stopped
-    command: bash -c "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?}"
-    expose:
-      - 6379
+    image: redis
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?}"]
     volumes:
       - ./data/redis:/data
     networks:
       - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
 
   db:
     image: mysql
-    restart: unless-stopped
     tty: true
-    expose:
-      - 3306
     volumes:
       - ./data/db:/var/lib/mysql
     environment:
@@ -58,8 +56,16 @@ services:
       MYSQL_PASSWORD: "${MYSQL_PASSWORD:?}"
     networks:
       - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
 
 networks:
   backend:
-    driver: bridge
-    name: ${NETWORK_NAME:?}
+    driver: overlay
+    attachable: true
+    name: "laravel"

@@ -6,10 +6,28 @@ Copy and customize .env file:
 cp .env.exmple .env
 ```
 
-Build docker containers:
+Import environment variables:
 
 ```bash
-docker compose up -d --build
+export $(cat .env.${ENV} | xargs)
+```
+
+Build docker images:
+
+```bash
+docker build -f "Dockerfile" -t "laravel-scalable-app:latest" ./
+```
+
+Swarm init if needed:
+
+```bash
+docker swarm init
+```
+
+Deploy application:
+
+```bash
+docker stack deploy -c docker-compose.yaml laravel
 ```
 
 Install deps and configure application:
